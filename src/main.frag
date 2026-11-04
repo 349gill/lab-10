@@ -79,8 +79,7 @@ void main() {
                 if (all(greaterThanEqual(OldWin, vec2(0.5))) &&
                     all(lessThanEqual(OldWin, windowSizePixels - 0.5))) {
                     vec4 OldColor = texture2D(OldFrame, OldWin / windowSizePixels);
-                    float Iters = Et.isInf ? float(MAX_ITERS) : Et.iters;
-                    float Alpha = clamp(Iters / TrueMaxIters, 0.0, 1.0);
+                    float Alpha = clamp(float(MAX_ITERS) / TrueMaxIters, 0.0, 1.0);
                     Result = mix(OldColor, NewColor, Alpha);
                 }
             }
