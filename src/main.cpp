@@ -39,6 +39,11 @@ int main() {
     // load vertex and fragment shaders:
     sf::Shader shader(std::filesystem::path{"main.vert"}, std::filesystem::path{"main.frag"});
     // ... other shaders can go here...
+    sf::Shader CopyShader(std::filesystem::path{"main.vert"}, std::filesystem::path{"copy.frag"});
+    sf::RenderTexture CurFrame(window.getSize());
+    sf::RenderTexture OldFrame(window.getSize());
+    CurFrame.setSmooth(true);
+    OldFrame.setSmooth(true);
 
     sf::Font openSansFont(EmbeddedFonts::OpenSans_SemiBold_ttf,
                           EmbeddedFonts::OpenSans_SemiBold_ttf_len);
@@ -56,6 +61,11 @@ int main() {
     float worldUnitsPerPixel = 1.f / window.getSize().y;
     sf::Vector2f camCenterWorld{0.f, 0.f};
     int maxIters = INIT_ITERS;
+
+    sf::Vector2f OldCamCenterWorld = camCenterWorld;
+    float OldWorldUnitsPerPixel = worldUnitsPerPixel;
+    sf::Vector2f OldC = c;
+    bool HaveOldFrame = false;
 
     int i = -1;
     while (window.isOpen()) {
@@ -113,10 +123,27 @@ int main() {
         } else {
             maxIters = std::min(maxIters * 2, TRUE_MAX_ITERS);
         }
-        // TODO set shader uniforms here...
+        // Set shader uniforms
+        const bool UseOld = HaveOldFrame && (c == OldC);
+
+        shader.setUniform("c", c);
+        shader.setUniform("MAX_ITERS", maxIters);
+        shader.setUniform("windowSizePixels", sf::Vector2f(window.getSize()));
+        shader.setUniform("camCenterWorld", camCenterWorld);
+        shader.setUniform("camWorldUnitsPerPixel", worldUnitsPerPixel);
+        shader.setUniform("UseOld", UseOld);
+        shader.setUniform("OldFrame", OldFrame.getTexture());
+        shader.setUniform("OldCamCenterWorld", OldCamCenterWorld);
+        shader.setUniform("OldCamWorldUnitsPerPixel", OldWorldUnitsPerPixel);
+
+        CurFrame.clear();
+        CurFrame.draw(fullscreenTriangle, &shader);
+        CurFrame.display();
+
+        CopyShader.setUniform("toCopy", CurFrame.getTexture());
 
         window.clear(sf::Color::Black);
-        // TODO something.draw(fullscreenTriangle, &shader);
+        window.draw(fullscreenTriangle, &CopyShader);
         // this might change as you finish more parts!
         cText.setString("c = (" + std::to_string(c.x) + ", " + std::to_string(c.y) + ")");
         cTextShadow.setString("c = (" + std::to_string(c.x) + ", " + std::to_string(c.y) + ")");
@@ -124,7 +151,14 @@ int main() {
         window.draw(cText);
         window.display();
 
-        // TODO (reprojection)... update "old" states
+        OldFrame.clear();
+        OldFrame.draw(fullscreenTriangle, &CopyShader);
+        OldFrame.display();
+        OldCamCenterWorld = camCenterWorld;
+        OldWorldUnitsPerPixel = worldUnitsPerPixel;
+        
+        OldC = c;
+        HaveOldFrame = true;
     }
     return 0;
 }
